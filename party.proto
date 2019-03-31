@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package party;
+
+service PartyService {
+  rpc CreateParty(PartyRequest) returns (PartyResponse);
+}
+
+message Party { 
+  string FirstName = 1;
+  string LastName = 2;
+
+  enum Gender {
+    MALE = 0;
+    FEMALE = 1;
+  }
+
+  Gender gender = 3;
+
+  enum PhoneType {
+    MOBILE = 0;
+    HOME = 1;
+    WORK = 2;
+  }
+
+  message PhoneNumber {
+    string number = 1;
+    PhoneType type  = 2;
+  } 
+  
+  string DataOfBirth = 4;
+  repeated PhoneNumber phones = 5;    
+  string Email = 6;
+  string PanNumber = 7;
+  string Address = 9;
+  string Aadhaar = 10;     
+}
+
+message PartyRequest {
+  string api = 1;
+  Party party = 2;
+}
+
+message PartyResponse {
+  string api = 1;
+  int64 partyId = 2;
+}
+
