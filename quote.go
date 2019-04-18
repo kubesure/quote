@@ -114,7 +114,7 @@ func save(q *quotereq) (*quoteres, error) {
 
 	quote := bson.M{
 		"quoteNumber": id, "code": q.Code, "sumAssured": q.SumInsured, "premium": q.Premium,
-		"parties": parties,
+		"parties": parties, "createdDate" : time.Now().String(),
 	}
 	_, errcol := collection.InsertOne(context.Background(), quote)
 
