@@ -1,13 +1,15 @@
 package main
 
 import (
-	"context"
+	//"context"
 	"encoding/json"
 	"fmt"
-	//api "github.com/kubesure/party/api/v1"
+	api "github.com/kubesure/party/api/v1"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -16,6 +18,10 @@ import (
 )
 
 var mongoquotesvc = os.Getenv("mongoquotesvc")
+
+const (
+	address = "localhost:50051"
+)
 
 type quotereq struct {
 	Code        string  `json:"code" bson:"code"`
@@ -26,23 +32,23 @@ type quotereq struct {
 }
 
 type party struct {
-	FirstName    string `json:"firstName" bson:"firstName"`
-	LastName     string `json:"lastName" bson:"lastName"`
-	Gender       string `json:"gender" bson:"gender"`
-	DataOfBirth  string `json:"dateOfBirth" bson:"dateOfBirth"`
-	MobileNumber string `json:"mobileNumber" bson:"mobileNumber"`
-	Email        string `json:"email" bson:"email"`
-	PanNumber    string `json:"panNumber" bson:"panNumber"`
-	Aadhaar      int64  `json:"aadhaar" bson:"aadhaar"`
-	AddressLine1 string `json:"addressLine1" bson:"addressLine1"`
-	AddressLine2 string `json:"addressLine2" bson:"addressLine2"`
-	AddressLine3 string `json:"addressLine3" bson:"addressLine3"`
-	City         string `json:"city" bson:"city"`
-	PinCode      int32  `bson:"pinCode" bson:"pinCode"`
-	Latitude     int64  `json:"latitude" bson:"latitude"`
-	Longitude    int64  `json:"longitude" bson:"latitude"`
-	Relationship string `json:"relationship" bson:"relationship"`
-	IsPrimary    bool   `json:"isPrimary" bson:"isPrimary"`
+	FirstName    string  `json:"firstName" bson:"firstName"`
+	LastName     string  `json:"lastName" bson:"lastName"`
+	Gender       string  `json:"gender" bson:"gender"`
+	DataOfBirth  string  `json:"dateOfBirth" bson:"dateOfBirth"`
+	MobileNumber string  `json:"mobileNumber" bson:"mobileNumber"`
+	Email        string  `json:"email" bson:"email"`
+	PanNumber    string  `json:"panNumber" bson:"panNumber"`
+	Aadhaar      int64   `json:"aadhaar" bson:"aadhaar"`
+	AddressLine1 string  `json:"addressLine1" bson:"addressLine1"`
+	AddressLine2 string  `json:"addressLine2" bson:"addressLine2"`
+	AddressLine3 string  `json:"addressLine3" bson:"addressLine3"`
+	City         string  `json:"city" bson:"city"`
+	PinCode      int32   `bson:"pinCode" bson:"pinCode"`
+	Latitude     float64 `json:"latitude" bson:"latitude"`
+	Longitude    float64 `json:"longitude" bson:"latitude"`
+	Relationship string  `json:"relationship" bson:"relationship"`
+	IsPrimary    bool    `json:"isPrimary" bson:"isPrimary"`
 }
 
 type quoteres struct {
@@ -91,17 +97,19 @@ func save(q *quotereq) (*quoteres, error) {
 		return nil, errSeq
 	}
 
-	parties := bson.A{
-		bson.D{
-			{"partyId", 12345},
-			{"relationship", "self"},
-			{"isPrimary", true},
-		},
-		bson.D{
-			{"partyId", 12345},
-			{"relationship", "nominee"},
-			{"isPrimary", false},
-		},
+	var parties []bson.D
+
+	for _, p := range q.Parties {
+		id, err := saveparty(&p)
+		if err != nil {
+			return nil, err
+		}
+		d := bson.D{
+			{"partyId", id},
+			{"relationship", p.Relationship},
+			{"isPrimary", p.IsPrimary},
+		}
+		parties = append(parties, d)
 	}
 
 	quote := bson.M{
@@ -117,6 +125,48 @@ func save(q *quotereq) (*quoteres, error) {
 
 	res := quoteres{QuoteNumber: id}
 	return &res, nil
+}
+
+func saveparty(qp *party) (int64, error) {
+	conn, err := grpc.Dial(address, grpc.WithInsecure())
+	if err != nil {
+		
+		return 0, err
+	}
+	defer conn.Close()
+	client := api.NewPartyServiceClient(conn)
+	
+	var p api.Party
+	p.Aadhaar = qp.Aadhaar
+	p.AddressLine1 = qp.AddressLine1
+	p.AddressLine2 = qp.AddressLine2
+	p.AddressLine3 = qp.AddressLine3
+	p.City = qp.City
+	p.DataOfBirth = qp.DataOfBirth
+	p.Email = qp.Email
+	p.FirstName = qp.FirstName
+	p.LastName = qp.LastName
+	p.Latitude = qp.Latitude
+	p.Longitude = qp.Longitude
+	if qp.Gender == "MALE" {
+		p.Gender = api.Party_MALE
+	}
+	if qp.Gender == "FEMALE" {
+		p.Gender = api.Party_FEMALE
+	}
+
+	var phones []*api.Party_PhoneNumber
+	phone := api.Party_PhoneNumber{Number: qp.MobileNumber}
+	phone.Type = api.Party_MOBILE
+	phones = append(phones, &phone)
+	p.Phones = phones
+
+	req := api.PartyRequest{Party: &p}
+	party, err := client.CreateParty(context.Background(), &req)
+	if err != nil {
+		return 0, err
+	}
+	return party.Id, nil
 }
 
 func nextcounter(c *mongo.Client) (int64, error) {
@@ -142,7 +192,7 @@ func marshallReq(data string) (*quotereq, error) {
 	var q quotereq
 	err := json.Unmarshal([]byte(data), &q)
 	if err != nil {
-		log.Println("Error in marshalling request", err.Error())
+		
 		return nil, err
 	}
 	return &q, nil
