@@ -14,6 +14,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"time"
 )
 
@@ -59,7 +60,23 @@ func main() {
 	log.Println("quote api starting...")
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v1/healths/quotes", quote)
-	log.Fatal(http.ListenAndServe(":8000", mux))
+	srv := http.Server{Addr: ":8080", Handler: mux}
+	ctx := context.Background()
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+
+	go func() {
+		for range c {
+			log.Print("shutting down receipt server...")
+			srv.Shutdown(ctx)
+			<-ctx.Done()
+		}
+	}()
+
+	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+		log.Fatalf("ListenAndServe(): %s", err)
+	}
+	//log.Fatal(http.ListenAndServe(":8000", mux))
 }
 
 func quote(w http.ResponseWriter, req *http.Request) {
@@ -114,7 +131,7 @@ func save(q *quotereq) (*quoteres, error) {
 
 	quote := bson.M{
 		"quoteNumber": id, "code": q.Code, "sumAssured": q.SumInsured, "premium": q.Premium,
-		"parties": parties, "createdDate" : time.Now().String(),
+		"parties": parties, "createdDate": time.Now().String(),
 	}
 	_, errcol := collection.InsertOne(context.Background(), quote)
 
@@ -130,12 +147,12 @@ func save(q *quotereq) (*quoteres, error) {
 func saveparty(qp *party) (int64, error) {
 	conn, err := grpc.Dial(address, grpc.WithInsecure())
 	if err != nil {
-		
+
 		return 0, err
 	}
 	defer conn.Close()
 	client := api.NewPartyServiceClient(conn)
-	
+
 	var p api.Party
 	p.Aadhaar = qp.Aadhaar
 	p.AddressLine1 = qp.AddressLine1
@@ -192,7 +209,7 @@ func marshallReq(data string) (*quotereq, error) {
 	var q quotereq
 	err := json.Unmarshal([]byte(data), &q)
 	if err != nil {
-		
+
 		return nil, err
 	}
 	return &q, nil
