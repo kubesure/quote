@@ -67,7 +67,7 @@ func main() {
 
 	go func() {
 		for range c {
-			log.Print("shutting down receipt server...")
+			log.Print("shutting down quote server...")
 			srv.Shutdown(ctx)
 			<-ctx.Done()
 		}
