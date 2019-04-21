@@ -60,7 +60,7 @@ func main() {
 	log.Println("quote api starting...")
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v1/healths/quotes", quote)
-	srv := http.Server{Addr: ":8080", Handler: mux}
+	srv := http.Server{Addr: ":8000", Handler: mux}
 	ctx := context.Background()
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt)
@@ -79,7 +79,26 @@ func main() {
 	//log.Fatal(http.ListenAndServe(":8000", mux))
 }
 
+func validateReq(w http.ResponseWriter, req *http.Request) error {
+	if req.Method != http.MethodPost {
+		log.Println("invalid method ", req.Method)
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return fmt.Errorf("Invalid method %s", req.Method)
+	}
+
+	if req.Header.Get("Content-Type") != "application/json" {
+		log.Println("invalid content type ", req.Header.Get("Content-Type"))
+		w.WriteHeader(http.StatusBadRequest)
+		return fmt.Errorf("Invalid content-type require %s", "application/json")
+	}
+	return nil
+}
+
 func quote(w http.ResponseWriter, req *http.Request) {
+	if err := validateReq(w, req); err != nil {
+		return
+	}
+
 	body, _ := ioutil.ReadAll(req.Body)
 	q, merr := marshallReq(string(body))
 	r, serr := save(q)
