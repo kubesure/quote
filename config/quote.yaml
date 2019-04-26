@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: quote
+    role: business
+    type: backend
+  name: quote
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: quote
+      role: business
+      type: backend
+  template:
+    metadata:
+      labels:
+        app: quote
+        role: business
+        type: backend
+    spec:
+      containers:
+      - env:
+        - name: mongoquotesvc
+          value: mongoquotesvc
+        image: quote:v1
+        name: quote
+        ports:
+        - containerPort: 8030
