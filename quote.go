@@ -50,7 +50,7 @@ type party struct {
 }
 
 type quoteres struct {
-	QuoteNumber int64 `json:"quoteNumber"`
+	QuoteNumber int `json:"quoteNumber"`
 }
 
 func main() {
@@ -202,7 +202,7 @@ func saveparty(qp *party) (int64, error) {
 	return party.Id, nil
 }
 
-func nextcounter(c *mongo.Client) (int64, error) {
+func nextcounter(c *mongo.Client) (int, error) {
 	collection := c.Database("quotes").Collection("counter")
 	filter := bson.M{"_id": "quoteid"}
 	update := bson.M{"$inc": bson.M{"value": 1}}
@@ -211,7 +211,7 @@ func nextcounter(c *mongo.Client) (int64, error) {
 	result := collection.FindOneAndUpdate(context.Background(), filter, update, &opt)
 	type record struct {
 		Quoteid string `bson:"quoteid"`
-		Value   int64  `bson:"value"`
+		Value   int    `bson:"value"`
 	}
 	var data record
 	err := result.Decode(&data)
