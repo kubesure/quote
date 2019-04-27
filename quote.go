@@ -123,13 +123,6 @@ func save(q *quotereq) (*quoteres, error) {
 		return nil, errping
 	}
 
-	collection := client.Database("quotes").Collection("quote")
-	id, errSeq := nextcounter(client)
-	if errSeq != nil {
-		log.Println("err seq ", errSeq)
-		return nil, errSeq
-	}
-
 	var parties []bson.D
 
 	for _, p := range q.Parties {
@@ -145,10 +138,17 @@ func save(q *quotereq) (*quoteres, error) {
 		parties = append(parties, d)
 	}
 
+	id, errSeq := nextcounter(client)
+	if errSeq != nil {
+		log.Println("err seq ", errSeq)
+		return nil, errSeq
+	}
+
 	quote := bson.M{
 		"quoteNumber": id, "code": q.Code, "sumAssured": q.SumInsured, "premium": q.Premium,
 		"parties": parties, "createdDate": time.Now().String(),
 	}
+	collection := client.Database("quotes").Collection("quote")
 	_, errcol := collection.InsertOne(context.Background(), quote)
 
 	if errcol != nil {
