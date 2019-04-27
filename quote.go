@@ -19,10 +19,7 @@ import (
 )
 
 var mongoquotesvc = os.Getenv("mongoquotesvc")
-
-const (
-	address = "localhost:50051"
-)
+var partysvc = os.Getenv("partysvc")
 
 type quotereq struct {
 	Code        string  `json:"code" bson:"code"`
@@ -164,7 +161,7 @@ func save(q *quotereq) (*quoteres, error) {
 }
 
 func saveparty(qp *party) (int64, error) {
-	conn, err := grpc.Dial(address, grpc.WithInsecure())
+	conn, err := grpc.Dial(partysvc+":50051", grpc.WithInsecure())
 	if err != nil {
 
 		return 0, err
