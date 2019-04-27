@@ -24,7 +24,9 @@ spec:
       - env:
         - name: mongoquotesvc
           value: mongoquotesvc
+        - name: partysvc
+          value: partysvc
         image: quote:v1
         name: quote
         ports:
-        - containerPort: 8030
+        - containerPort: 8000
