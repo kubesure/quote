@@ -114,14 +114,6 @@ func quote(w http.ResponseWriter, req *http.Request) {
 }
 
 func save(q *quotereq) (*quoteres, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	client, _ := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://"+mongoquotesvc+":27017"))
-	errping := client.Ping(ctx, nil)
-
-	if errping != nil {
-		return nil, errping
-	}
 
 	var parties []bson.D
 
@@ -136,6 +128,15 @@ func save(q *quotereq) (*quoteres, error) {
 			{"isPrimary", p.IsPrimary},
 		}
 		parties = append(parties, d)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	client, _ := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://"+mongoquotesvc+":27017"))
+	errping := client.Ping(ctx, nil)
+
+	if errping != nil {
+		return nil, errping
 	}
 
 	id, errSeq := nextcounter(client)
