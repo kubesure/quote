@@ -1,7 +1,0 @@
-FROM golang:1.12.4
-WORKDIR /go/src/app
-COPY . .
-RUN go get -d -v
-RUN CGO_ENABLED=0 go install
-ENTRYPOINT ["/go/bin/app"]
-
