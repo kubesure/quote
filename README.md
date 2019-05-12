@@ -1,17 +1,16 @@
 # quote
 
 db.quotes.counter.insert({"_id" : "quoteid" , "value": 0 })
+
 db.quotes.counter.find({}).pretty()
 
+```
 curl -i -X POST \
-  http://172.17.0.12:8000/api/v1/healths/quotes \
-  -H 'Content-Type: application/json' \
-  -H 'Postman-Token: ef137bfc-bfa8-4c0a-bcc3-0dd6c5607075' \
-  -H 'cache-control: no-cache' \
-  -d '{
-    "code": "1A",
-    "SumInsured": 12000,
-    "Premium": 3000,
+  http://172.17.0.12:8000/api/v1/healths/quotes 
+  -d '{                        
+    "code": "1A",              
+    "SumInsured": 12000,       
+    "Premium": 3000,          
     "parties": [
         {
             "firstName": "Bhavesh",
