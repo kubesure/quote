@@ -2,7 +2,7 @@
 
 #### biz design
 
-json api creates quote for a sum a sumassured and premium caluculated by premium service. Creates parties insured and nominee by calling an internal party grpc service. Parties returned by party service are bound to quote and qoute number genereted.
+api creates quote for insured's risk. Creates parties, insured and nominee calling party grpc service. Parties are bound to quote and qoute number genereted.
 
 #### components
 
