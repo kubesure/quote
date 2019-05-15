@@ -1,14 +1,31 @@
 # quote
 
-db.quotes.counter.insert({"_id" : "quoteid" , "value": 0 })
-db.quotes.counter.find({}).pretty()
+#### biz design
 
-curl -i -X POST \
-  http://172.17.0.12:8000/api/v1/healths/quotes \
-  -H 'Content-Type: application/json' \
-  -H 'Postman-Token: ef137bfc-bfa8-4c0a-bcc3-0dd6c5607075' \
-  -H 'cache-control: no-cache' \
-  -d '{
+api creates quote for insured's risk. Creates parties, insured and nominee calling party grpc service. Parties are bound to quote and qoute number genereted.
+
+#### components
+
+Mongodb v4, GRPC, Golang 
+
+#### Dev setup and test
+
+1. create db quote and party (follow instruction in party service) in mongodb
+    ```
+       use quotes
+       db.counter.insert({"_id" : "quoteid" , "value": 0 })
+       db.counter.find({}).pretty()
+    ```
+2. Run party and quote 
+   ```
+       go run ../party/party.go
+       go run quote.go 
+   ```
+
+3. Run curl to create quote
+
+```
+ curl -i -X POST http://localhost:8000/api/v1/healths/quotes   -H 'Content-Type: application/json'    -d '{
     "code": "1A",
     "SumInsured": 12000,
     "Premium": 3000,
@@ -53,3 +70,4 @@ curl -i -X POST \
         }
     ]
 }'
+```
