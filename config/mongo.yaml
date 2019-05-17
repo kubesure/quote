@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: mongo-quote
+    tier: backend
+  name: mongo-quote
+spec:
+  serviceName: mongoquotesvc
+  replicas: 3
+  selector:
+    matchLabels:
+      app: mongo-quote
+      tier: backend
+  template:
+    metadata:
+      labels:
+        app: mongo-quote
+        tier: backend
+    spec:
+      containers:
+      - image: mongo:4.0.9 
+        name: mongo-quote
+        command:
+          - mongod  
+          - "--replSet"
+          - rs0 
+        ports:
+        - containerPort: 27017
+        volumeMounts:
+        - name: mongo-persistent-storage
+          mountPath: /data/db
+  volumeClaimTemplates: 
+  - metadata:
+    name: mongo-persistent-storage
+    annotations: 
+      volume.beta.kubernetes.io./storage-class: default
+    spec: 
+    accessModes: [ReadWriteOnce]
+    resources: 
+      requests:
+         storage: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: mongo-quote
+    tier: backend
+  name: mongoquotesvc
+spec:
+  ports:
+  - port: 27017
+    protocol: TCP
+    targetPort: 27017
+  selector:
+    app: mongo-quote
+    tier: backend
+  clusterIP: None
