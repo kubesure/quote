@@ -22,6 +22,13 @@ import (
 var mongoquotesvc = os.Getenv("mongoquotesvc")
 var partysvc = os.Getenv("partysvc")
 
+func init() {
+	log.SetFormatter(&log.JSONFormatter{})
+	log.SetLevel(log.DebugLevel)
+	log.SetOutput(os.Stdout)
+	log.SetReportCaller(true)
+}
+
 type quotereq struct {
 	Code        string  `json:"code" bson:"code"`
 	SumInsured  int32   `json:"sumInsured" bson:"sumInsured"`
