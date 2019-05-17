@@ -4,18 +4,19 @@ import (
 	//"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"os"
+	"os/signal"
+	"time"
+
 	api "github.com/kubesure/party/api/v1"
+	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"io/ioutil"
-	"log"
-	"net/http"
-	"os"
-	"os/signal"
-	"time"
 )
 
 var mongoquotesvc = os.Getenv("mongoquotesvc")
@@ -54,7 +55,7 @@ type quoteres struct {
 }
 
 func main() {
-	log.Println("quote api starting...")
+	log.Debug("quote api starting...")
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v1/healths/quotes", quote)
 	srv := http.Server{Addr: ":8000", Handler: mux}
@@ -64,7 +65,7 @@ func main() {
 
 	go func() {
 		for range c {
-			log.Print("shutting down quote server...")
+			log.Debug("shutting down quote server...")
 			srv.Shutdown(ctx)
 			<-ctx.Done()
 		}
@@ -73,18 +74,17 @@ func main() {
 	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 		log.Fatalf("ListenAndServe(): %s", err)
 	}
-	//log.Fatal(http.ListenAndServe(":8000", mux))
 }
 
 func validateReq(w http.ResponseWriter, req *http.Request) error {
 	if req.Method != http.MethodPost {
-		log.Println("invalid method ", req.Method)
+		log.Debug("invalid method ", req.Method)
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return fmt.Errorf("Invalid method %s", req.Method)
 	}
 
 	if req.Header.Get("Content-Type") != "application/json" {
-		log.Println("invalid content type ", req.Header.Get("Content-Type"))
+		log.Debug("invalid content type ", req.Header.Get("Content-Type"))
 		w.WriteHeader(http.StatusBadRequest)
 		return fmt.Errorf("Invalid content-type require %s", "application/json")
 	}
@@ -101,10 +101,10 @@ func quote(w http.ResponseWriter, req *http.Request) {
 	r, serr := save(q)
 
 	if merr != nil {
-		log.Println(merr)
+		log.Error(merr)
 		w.WriteHeader(http.StatusServiceUnavailable)
 	} else if serr != nil {
-		log.Println(serr)
+		log.Error(serr)
 		w.WriteHeader(http.StatusServiceUnavailable)
 	} else {
 		data, _ := json.Marshal(r)
@@ -141,7 +141,6 @@ func save(q *quotereq) (*quoteres, error) {
 
 	id, errSeq := nextcounter(client)
 	if errSeq != nil {
-		log.Println("err seq ", errSeq)
 		return nil, errSeq
 	}
 
@@ -153,7 +152,6 @@ func save(q *quotereq) (*quoteres, error) {
 	_, errcol := collection.InsertOne(context.Background(), quote)
 
 	if errcol != nil {
-		log.Println("errcol", errcol)
 		return nil, errcol
 	}
 
@@ -164,7 +162,6 @@ func save(q *quotereq) (*quoteres, error) {
 func saveparty(qp *party) (int64, error) {
 	conn, err := grpc.Dial(partysvc+":50051", grpc.WithInsecure())
 	if err != nil {
-
 		return 0, err
 	}
 	defer conn.Close()

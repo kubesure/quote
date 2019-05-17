@@ -39,8 +39,18 @@
 			"Rev": "2a8bb927dd31d8daada140a5d09578521ce5c36a"
 		},
 		{
+			"ImportPath": "github.com/konsorten/go-windows-terminal-sequences",
+			"Comment": "v1.0.2",
+			"Rev": "f55edac94c9bbba5d6182a4be46d86a2c9b5b50e"
+		},
+		{
 			"ImportPath": "github.com/kubesure/party/api/v1",
 			"Rev": "8bf78281f279c18835a5b7b6ebe173542f94d61c"
+		},
+		{
+			"ImportPath": "github.com/sirupsen/logrus",
+			"Comment": "v1.4.1-2-g9b3cdde",
+			"Rev": "9b3cdde74fbe9443d704467498a7dcb61a79de9b"
 		},
 		{
 			"ImportPath": "github.com/xdg/scram",
