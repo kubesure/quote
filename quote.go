@@ -137,10 +137,7 @@ func save(q *quotereq) (*quoteres, error) {
 		parties = append(parties, d)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	client, _ := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://"+mongoquotesvc+":27017"))
-	errping := client.Ping(ctx, nil)
+	client, errping := conn()
 
 	if errping != nil {
 		return nil, errping
@@ -234,4 +231,14 @@ func marshallReq(data string) (*quotereq, error) {
 		return nil, err
 	}
 	return &q, nil
+}
+
+func conn() (*mongo.Client, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	uri := "mongodb://" + mongoquotesvc + "/?replicaSet=rs0"
+	log.Debug(uri)
+	client, _ := mongo.Connect(ctx, options.Client().ApplyURI(uri))
+	errping := client.Ping(ctx, nil)
+	return client, errping
 }
