@@ -23,7 +23,7 @@ spec:
       containers:
       - env:
         - name: mongoquotesvc
-          value: mongo-quote-0.mongoquotesvc.default.svc.cluster.local:27017,mongo-quote-1.mongoquotesvc.default.svc.cluster.local:27017,mongo-quote-2.mongoquotesvc.default.svc.cluster.local:27017
+          value: mongo-quote-0.mongoquotesvc:27017,mongo-quote-1.mongoquotesvc:27017,mongo-quote-2.mongoquotesvc:27017
         - name: partysvc
           value: partysvc
         image: quote:v1
