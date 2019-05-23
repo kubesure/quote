@@ -11,7 +11,7 @@ Mongodb v4, GRPC, Golang
 #### Dev setup and test
 
 1. start mongo in replication mode
-
+```
 mongod --replSet=rs0 --bind_ip="0.0.0.0" --smallfiles --noprealloc --port="27017" --dbpath=d:/data/dbrs0
 mongod --replSet=rs0 --bind_ip="0.0.0.0" --smallfiles --noprealloc --port="37017" --dbpath=d:/data/dbrs1
 mongod --replSet=rs0 --bind_ip="0.0.0.0" --smallfiles --noprealloc --port="47017" --dbpath=d:/data/dbrs2
@@ -21,6 +21,7 @@ rs.initiate({ _id: "rs0", members:[
     { _id: 1, host: "localhost:37017" },
     { _id: 2, host: "localhost:47017" },
 ]});
+```
 
 2. create db quote and party (follow instruction in party service) in mongodb primary node
     ```
