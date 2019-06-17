@@ -149,8 +149,8 @@ func save(q *quotereq) (*quoteres, error) {
 	}
 
 	quote := bson.M{
-		"quoteNumber": id, "code": q.Code, "sumAssured": q.SumInsured, "premium": q.Premium,
-		"parties": parties, "createdDate": time.Now().String(),
+		"quoteNumber": id, "code": q.Code, "sumAssured": q.SumInsured, "dateOfBirth": q.DateOfBirth,
+		"premium": q.Premium, "parties": parties, "createdDate": time.Now().String(),
 	}
 	collection := client.Database("quotes").Collection("quote")
 	_, errcol := collection.InsertOne(context.Background(), quote)
@@ -177,6 +177,8 @@ func saveparty(qp *party) (int64, error) {
 	p.AddressLine2 = qp.AddressLine2
 	p.AddressLine3 = qp.AddressLine3
 	p.City = qp.City
+	p.PinCode = qp.PinCode
+	p.PanNumber = qp.PanNumber
 	p.DataOfBirth = qp.DataOfBirth
 	p.Email = qp.Email
 	p.FirstName = qp.FirstName

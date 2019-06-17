@@ -44,13 +44,14 @@ rs.conf()
 curl -i -X POST http://localhost:8000/api/v1/healths/quotes  -H 'Content-Type: application/json' -d '{
     "code": "1A",
     "SumInsured": 12000,
+    "dateOfBirth" : "14/01/1977",
     "Premium": 3000,
     "parties": [
         {
             "firstName": "Bhavesh",
             "lastName": "Yadav",
             "gender": "MALE",
-            "dataOfBirth": "14/01/1977",
+            "dateOfBirth": "14/01/1977",
             "mobileNumber": "1234567890",
             "email": "primary@gmail.com",
             "panNumber": "AJBDD12345G",
@@ -69,7 +70,7 @@ curl -i -X POST http://localhost:8000/api/v1/healths/quotes  -H 'Content-Type: a
             "firstName": "Usha",
             "lastName": "Patel",
             "gender": "FEMALE",
-            "dataOfBirth": "14/01/1977",
+            "dateOfBirth": "14/01/1977",
             "mobileNumber": "1234567890",
             "email": "nominiee@gmail.com",
             "panNumber": "AJBDD12345G",
