@@ -43,9 +43,9 @@ rs.conf()
 ```
 curl -i -X POST http://localhost:8000/api/v1/healths/quotes  -H 'Content-Type: application/json' -d '{
     "code": "1A",
-    "SumInsured": 12000,
+    "sumInsured": 12000,
     "dateOfBirth" : "14/01/1977",
-    "Premium": 3000,
+    "premium": 3000,
     "parties": [
         {
             "firstName": "Bhavesh",
