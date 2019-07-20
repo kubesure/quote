@@ -4,6 +4,26 @@
 	"GodepVersion": "v80",
 	"Deps": [
 		{
+			"ImportPath": "github.com/go-playground/locales",
+			"Comment": "v0.12.1-33-g630ebbb6",
+			"Rev": "630ebbb602847eba93e75ae38bbc7bb7abcf1ff3"
+		},
+		{
+			"ImportPath": "github.com/go-playground/locales/currency",
+			"Comment": "v0.12.1-33-g630ebbb6",
+			"Rev": "630ebbb602847eba93e75ae38bbc7bb7abcf1ff3"
+		},
+		{
+			"ImportPath": "github.com/go-playground/locales/en",
+			"Comment": "v0.12.1-33-g630ebbb6",
+			"Rev": "630ebbb602847eba93e75ae38bbc7bb7abcf1ff3"
+		},
+		{
+			"ImportPath": "github.com/go-playground/universal-translator",
+			"Comment": "v0.16.0-1-g7120149",
+			"Rev": "71201497bace774495daed26a3874fd339e0b538"
+		},
+		{
 			"ImportPath": "github.com/go-stack/stack",
 			"Comment": "v1.8.0",
 			"Rev": "2fee6af1a9795aafbe0253a0cfbdf668e1fb8a9a"
@@ -46,6 +66,11 @@
 		{
 			"ImportPath": "github.com/kubesure/party/api/v1",
 			"Rev": "8bf78281f279c18835a5b7b6ebe173542f94d61c"
+		},
+		{
+			"ImportPath": "github.com/leodido/go-urn",
+			"Comment": "v1.1.0-4-ga67a23e",
+			"Rev": "a67a23e1c1af3c66528573bb86a87246477277c1"
 		},
 		{
 			"ImportPath": "github.com/sirupsen/logrus",
@@ -429,6 +454,16 @@
 			"ImportPath": "google.golang.org/grpc/tap",
 			"Comment": "v1.2.0-876-gf1437f7",
 			"Rev": "f1437f7cc5fa7525032e27aa5fdc15e288220c4e"
+		},
+		{
+			"ImportPath": "gopkg.in/go-playground/validator.v9",
+			"Comment": "v9.29.1",
+			"Rev": "556b9da3c05f2a935bc086fb5a0bb55dd8112d2d"
+		},
+		{
+			"ImportPath": "gopkg.in/go-playground/validator.v9/translations/en",
+			"Comment": "v9.29.1",
+			"Rev": "556b9da3c05f2a935bc086fb5a0bb55dd8112d2d"
 		}
 	]
 }
