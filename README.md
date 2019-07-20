@@ -83,7 +83,7 @@ curl -i -X POST http://localhost:8000/api/v1/healths/quotes  -H 'Content-Type: a
             "latitude": 123223232,
             "Longitude": 12345643,
             "relationship": "self",
-            "IsPrimary": false
+            "isPrimary": false
         }
     ]
 }'
