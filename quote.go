@@ -1,8 +1,8 @@
 package main
 
 import (
-	//"context"
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -18,7 +18,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"gopkg.in/go-playground/validator.v9"
 	"gopkg.in/go-playground/validator.v9/translations/en"
@@ -78,6 +77,7 @@ func main() {
 	log.Debug("quote api starting...")
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v1/healths/quotes", quote)
+	mux.HandleFunc("/isready", isReady)
 	srv := http.Server{Addr: ":8000", Handler: mux}
 	ctx := context.Background()
 	c := make(chan os.Signal, 1)
@@ -94,6 +94,22 @@ func main() {
 	if err := srv.ListenAndServe(); err != http.ErrServerClosed {
 		log.Fatalf("ListenAndServe(): %s", err)
 	}
+}
+
+func isReady(w http.ResponseWriter, req *http.Request) {
+	client, errping := conn()
+	defer client.Disconnect(context.Background())
+	if errping != nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return
+	}
+
+	coll := client.Database("quotes").Collection("quote")
+	if coll == nil {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func quote(w http.ResponseWriter, req *http.Request) {
@@ -218,6 +234,7 @@ func save(q *quotereq) (*quoteres, error) {
 	if errping != nil {
 		return nil, errping
 	}
+	defer client.Disconnect(context.Background())
 
 	id, errSeq := nextcounter(client)
 	if errSeq != nil {
@@ -315,7 +332,6 @@ func conn() (*mongo.Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	uri := "mongodb://" + mongoquotesvc + "/?replicaSet=rs0"
-	log.Debug(uri)
 	client, _ := mongo.Connect(ctx, options.Client().ApplyURI(uri))
 	errping := client.Ping(ctx, nil)
 	return client, errping
