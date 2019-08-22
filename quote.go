@@ -98,7 +98,6 @@ func main() {
 
 func isReady(w http.ResponseWriter, req *http.Request) {
 	client, errping := conn()
-	defer client.Disconnect(context.Background())
 	if errping != nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
