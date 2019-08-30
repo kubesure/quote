@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"time"
 
 	english "github.com/go-playground/locales/en"
@@ -37,14 +38,15 @@ func init() {
 }
 
 type quotereq struct {
-	Code        string  `json:"code" bson:"code" validate:"required"`
-	SumInsured  int32   `json:"sumInsured" bson:"sumInsured" validate:"required"`
-	DateOfBirth string  `json:"dateOfBirth" bson:"dateOfBirth" validate:"required"`
-	Premium     int32   `json:"premium" bson:"premium" validate:"required"`
-	Parties     []party `json:"parties" bson:"parties" validate:"required,len=2,dive"`
+	Code        string   `json:"code" bson:"code" validate:"required"`
+	SumInsured  int32    `json:"sumInsured" bson:"sumInsured" validate:"required"`
+	DateOfBirth string   `json:"dateOfBirth" bson:"dateOfBirth" validate:"required"`
+	Premium     int32    `json:"premium" bson:"premium" validate:"required"`
+	Parties     []*party `json:"parties" bson:"parties" validate:"required,len=2,dive"`
 }
 
 type party struct {
+	Id           int64   `json:"id,omitempty" bson:"partyId"`
 	FirstName    string  `json:"firstName" bson:"firstName" validate:"required,gte=3,lt=20"`
 	LastName     string  `json:"lastName" bson:"lastName" validate:"required,gt=3,lt=20"`
 	Gender       string  `json:"gender" bson:"gender" validate:"required"`
@@ -59,13 +61,13 @@ type party struct {
 	City         string  `json:"city" bson:"city" validate:"required"`
 	PinCode      int32   `bson:"pinCode" bson:"pinCode" validate:"required"`
 	Latitude     float64 `json:"latitude" bson:"latitude" validate:"required,latitude"`
-	Longitude    float64 `json:"longitude" bson:"latitude" validate:"required,longitude"`
+	Longitude    float64 `json:"longitude" bson:"longitude" validate:"required,longitude"`
 	Relationship string  `json:"relationship" bson:"relationship" validate:"required"`
 	IsPrimary    bool    `json:"isPrimary" bson:"isPrimary"`
 }
 
 type quoteres struct {
-	QuoteNumber int `json:"quoteNumber"`
+	QuoteNumber int `json:"quoteNumber" bson:"quoteNumber"`
 }
 
 type errorresponse struct {
@@ -97,7 +99,7 @@ func main() {
 }
 
 func isReady(w http.ResponseWriter, req *http.Request) {
-	client, errping := conn()
+	client, errping := connDB()
 	if errping != nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		return
@@ -216,7 +218,7 @@ func save(q *quotereq) (*quoteres, error) {
 	var parties []bson.D
 
 	for _, p := range q.Parties {
-		id, err := saveparty(&p)
+		id, err := saveparty(p)
 		if err != nil {
 			return nil, err
 		}
@@ -228,7 +230,7 @@ func save(q *quotereq) (*quoteres, error) {
 		parties = append(parties, d)
 	}
 
-	client, errping := conn()
+	client, errping := connDB()
 
 	if errping != nil {
 		return nil, errping
@@ -241,7 +243,7 @@ func save(q *quotereq) (*quoteres, error) {
 	}
 
 	quote := bson.M{
-		"quoteNumber": id, "code": q.Code, "sumAssured": q.SumInsured, "dateOfBirth": q.DateOfBirth,
+		"quoteNumber": id, "code": q.Code, "sumInsured": q.SumInsured, "dateOfBirth": q.DateOfBirth,
 		"premium": q.Premium, "parties": parties, "createdDate": time.Now().String(),
 	}
 	collection := client.Database("quotes").Collection("quote")
@@ -298,6 +300,74 @@ func saveparty(qp *party) (int64, error) {
 	return party.Id, nil
 }
 
+func reteriveQuote(w http.ResponseWriter, req *http.Request) error {
+	return nil
+}
+
+func quoteFromDB(id string) (*quotereq, error) {
+	clientDB, errping := connDB()
+	if errping != nil {
+		return nil, errping
+	}
+	defer clientDB.Disconnect(context.Background())
+	quoteNumber, _ := strconv.ParseInt(id, 10, 64)
+	filter := bson.M{"quoteNumber": quoteNumber}
+	coll := clientDB.Database("quotes").Collection("quote")
+	result := coll.FindOne(context.Background(), filter)
+	quoterec := quotereq{}
+	errdecode := result.Decode(&quoterec)
+	if errdecode != nil {
+		log.Error(errdecode)
+		return nil, errdecode
+	}
+
+	connGrpc, err := grpc.Dial(partysvc+":50051", grpc.WithInsecure())
+	if err != nil {
+		return nil, err
+	}
+	defer connGrpc.Close()
+	cpgrpc := api.NewPartyServiceClient(connGrpc)
+
+	for _, p := range quoterec.Parties {
+		req := api.PartyRequest{}
+		req.Party = &api.Party{Id: p.Id}
+
+		party, err := cpgrpc.GetParty(context.Background(), &req)
+		if err != nil {
+			return nil, err
+		}
+		p.FirstName = party.FirstName
+		p.LastName = party.LastName
+
+		if party.Gender == api.Party_FEMALE {
+			p.Gender = "FEMALE"
+		}
+
+		if party.Gender == api.Party_MALE {
+			p.Gender = "MALE"
+		}
+
+		p.DataOfBirth = party.DataOfBirth
+		for _, phone := range party.Phones {
+			if phone.Type == api.Party_MOBILE {
+				p.MobileNumber = phone.Number
+			}
+		}
+
+		p.Email = party.Email
+		p.PanNumber = party.PanNumber
+		p.Aadhaar = party.Aadhaar
+		p.AddressLine1 = party.AddressLine1
+		p.AddressLine2 = party.AddressLine2
+		p.AddressLine3 = party.AddressLine3
+		p.City = party.City
+		p.PinCode = party.PinCode
+		p.Latitude = party.Latitude
+		p.Longitude = party.Longitude
+	}
+	return &quoterec, nil
+}
+
 func nextcounter(c *mongo.Client) (int, error) {
 	collection := c.Database("quotes").Collection("counter")
 	filter := bson.M{"_id": "quoteid"}
@@ -327,7 +397,7 @@ func marshallReq(data []byte) (*quotereq, error) {
 	return &q, nil
 }
 
-func conn() (*mongo.Client, error) {
+func connDB() (*mongo.Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	uri := "mongodb://" + mongoquotesvc + "/?replicaSet=rs0"
