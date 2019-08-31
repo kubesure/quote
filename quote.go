@@ -24,6 +24,17 @@ import (
 	"gopkg.in/go-playground/validator.v9/translations/en"
 )
 
+type Errcodes int
+
+//Error Code Enum
+const (
+	SystemErr = iota
+	InputJSONInvalid
+	InvalidRestMethod
+	InvalidContentType
+	QuoteNotFound
+)
+
 var mongoquotesvc = os.Getenv("mongoquotesvc")
 var partysvc = os.Getenv("partysvc")
 
@@ -115,6 +126,15 @@ func isReady(w http.ResponseWriter, req *http.Request) {
 
 func quote(w http.ResponseWriter, req *http.Request) {
 
+	switch req.Method {
+	case http.MethodGet:
+		reteriveQuote(w, req)
+	case http.MethodPost:
+		handleSaveQuote(w, req)
+	}
+}
+
+func handleSaveQuote(w http.ResponseWriter, req *http.Request) {
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
 		log.Error(err)
@@ -159,6 +179,31 @@ func quote(w http.ResponseWriter, req *http.Request) {
 			fmt.Fprintf(w, "%s", data)
 		}
 	}
+}
+
+func reteriveQuote(w http.ResponseWriter, req *http.Request) {
+	quoteNumber := req.URL.Query().Get("quoteNumber")
+
+	if len(quoteNumber) == 0 {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	quote, err := quoteFromDB(quoteNumber)
+	if err != nil && err.Code == SystemErr {
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return
+	}
+
+	if err != nil && err.Code == QuoteNotFound {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	data, _ := json.Marshal(quote)
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "%s", data)
+
 }
 
 func validateHeader(w http.ResponseWriter, req *http.Request) error {
@@ -300,14 +345,10 @@ func saveparty(qp *party) (int64, error) {
 	return party.Id, nil
 }
 
-func reteriveQuote(w http.ResponseWriter, req *http.Request) error {
-	return nil
-}
-
-func quoteFromDB(id string) (*quotereq, error) {
+func quoteFromDB(id string) (*quotereq, *errorresponse) {
 	clientDB, errping := connDB()
 	if errping != nil {
-		return nil, errping
+		return nil, &errorresponse{Code: SystemErr, Message: "Db connection not available"}
 	}
 	defer clientDB.Disconnect(context.Background())
 	quoteNumber, _ := strconv.ParseInt(id, 10, 64)
@@ -318,12 +359,13 @@ func quoteFromDB(id string) (*quotereq, error) {
 	errdecode := result.Decode(&quoterec)
 	if errdecode != nil {
 		log.Error(errdecode)
-		return nil, errdecode
+		return nil, &errorresponse{Code: QuoteNotFound, Message: "error in decoding db quote"}
 	}
 
 	connGrpc, err := grpc.Dial(partysvc+":50051", grpc.WithInsecure())
 	if err != nil {
-		return nil, err
+		log.Error(err)
+		return nil, &errorresponse{Code: SystemErr, Message: "error in opening grpc connection"}
 	}
 	defer connGrpc.Close()
 	cpgrpc := api.NewPartyServiceClient(connGrpc)
@@ -334,7 +376,8 @@ func quoteFromDB(id string) (*quotereq, error) {
 
 		party, err := cpgrpc.GetParty(context.Background(), &req)
 		if err != nil {
-			return nil, err
+			log.Error(err)
+			return nil, &errorresponse{Code: SystemErr, Message: "Error getting party from db"}
 		}
 		p.FirstName = party.FirstName
 		p.LastName = party.LastName
@@ -364,6 +407,10 @@ func quoteFromDB(id string) (*quotereq, error) {
 		p.PinCode = party.PinCode
 		p.Latitude = party.Latitude
 		p.Longitude = party.Longitude
+	}
+
+	if len(quoterec.Parties) != 2 {
+		return nil, &errorresponse{Code: QuoteNotFound, Message: "Quote not found"}
 	}
 	return &quoterec, nil
 }
