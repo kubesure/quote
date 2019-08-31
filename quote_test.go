@@ -66,14 +66,28 @@ func TestQuoteJsonMarshall(t *testing.T) {
 
 func TestValidateReq(t *testing.T) {
 	var qreq = quotereq{Code: "1A", SumInsured: 123, DateOfBirth: "14/01/1977"}
-	var parties []party
+	var parties []*party
 	for i := range []int{1, 2} {
-		var party = party{FirstName: "prashant", Email: "pras.p.in@gmail.com", PinCode: int32(i * 400086), MobileNumber: "asasaa"}
+		var party = &party{FirstName: "prashant", Email: "pras.p.in@gmail.com", PinCode: int32(i * 400086), MobileNumber: "asasaa"}
 		parties = append(parties, party)
 	}
 	qreq.Parties = parties
 	errors := validateReq(qreq)
 	if errors != nil {
 		t.Errorf("error in request %v", errors)
+	}
+}
+
+func TestQuoteFromDB(t *testing.T) {
+	quote, err := quoteFromDB("15")
+	if err != nil {
+		t.Errorf("quote not found %v", err)
+	}
+	if quote.Premium != 3000 {
+		t.Errorf("quote premium is %v and not 3000", quote.Premium)
+	}
+
+	if len(quote.Parties) != 2 {
+		t.Errorf("quote premium is %v and not 2", len(quote.Parties))
 	}
 }
