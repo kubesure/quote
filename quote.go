@@ -24,6 +24,7 @@ import (
 	"gopkg.in/go-playground/validator.v9/translations/en"
 )
 
+//Errcodes used in API response payload
 type Errcodes int
 
 //Error Code Enum
@@ -35,7 +36,10 @@ const (
 	QuoteNotFound
 )
 
+//mongodb quote db k8s service
 var mongoquotesvc = os.Getenv("mongoquotesvc")
+
+//k8s party service to create entites
 var partysvc = os.Getenv("partysvc")
 
 var validate *validator.Validate
@@ -109,6 +113,7 @@ func main() {
 	}
 }
 
+//called to determine is service is ready to receive traffic. configured as k8s readiness probe.
 func isReady(w http.ResponseWriter, req *http.Request) {
 	client, errping := connDB()
 	if errping != nil {
@@ -124,8 +129,8 @@ func isReady(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+//Handles GET and POST Quote.
 func quote(w http.ResponseWriter, req *http.Request) {
-
 	switch req.Method {
 	case http.MethodGet:
 		reteriveQuote(w, req)
@@ -134,6 +139,7 @@ func quote(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+//Save Quote and creates party using party GRPC service
 func handleSaveQuote(w http.ResponseWriter, req *http.Request) {
 	body, err := ioutil.ReadAll(req.Body)
 	if err != nil {
@@ -181,6 +187,7 @@ func handleSaveQuote(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
+//Gets a individual quote from DB.
 func reteriveQuote(w http.ResponseWriter, req *http.Request) {
 	quoteNumber := req.URL.Query().Get("quoteNumber")
 
@@ -221,6 +228,7 @@ func validateHeader(w http.ResponseWriter, req *http.Request) error {
 	return nil
 }
 
+//Validates req and responds will array of errors
 func validateReq(q quotereq) map[string][]string {
 	validate := validator.New()
 	eng := english.New()
@@ -258,6 +266,7 @@ func validateReq(q quotereq) map[string][]string {
 	return errors
 }
 
+//saves quotes to mongodb
 func save(q *quotereq) (*quoteres, error) {
 
 	var parties []bson.D
@@ -302,6 +311,7 @@ func save(q *quotereq) (*quoteres, error) {
 	return &res, nil
 }
 
+//calls GRPC party service to create individual party
 func saveparty(qp *party) (int64, error) {
 	conn, err := grpc.Dial(partysvc+":50051", grpc.WithInsecure())
 	if err != nil {
@@ -345,6 +355,7 @@ func saveparty(qp *party) (int64, error) {
 	return party.Id, nil
 }
 
+//Gets an quote from mongodb
 func quoteFromDB(id string) (*quotereq, *errorresponse) {
 	clientDB, errping := connDB()
 	if errping != nil {
@@ -415,6 +426,7 @@ func quoteFromDB(id string) (*quotereq, *errorresponse) {
 	return &quoterec, nil
 }
 
+//Generates new counter for a new Quote
 func nextcounter(c *mongo.Client) (int, error) {
 	collection := c.Database("quotes").Collection("counter")
 	filter := bson.M{"_id": "quoteid"}
@@ -434,6 +446,7 @@ func nextcounter(c *mongo.Client) (int, error) {
 	return data.Value, nil
 }
 
+//convert json request to go primitives.
 func marshallReq(data []byte) (*quotereq, error) {
 	var q quotereq
 	err := json.Unmarshal(data, &q)
@@ -447,7 +460,7 @@ func marshallReq(data []byte) (*quotereq, error) {
 func connDB() (*mongo.Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	uri := "mongodb://" + mongoquotesvc + "/?replicaSet=rs0"
+	uri := "mongodb://quote:quote1@" + mongoquotesvc + "/?quotesreplicaSet=rs0"
 	client, _ := mongo.Connect(ctx, options.Client().ApplyURI(uri))
 	errping := client.Ping(ctx, nil)
 	return client, errping
