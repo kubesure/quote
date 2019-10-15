@@ -460,7 +460,7 @@ func marshallReq(data []byte) (*quotereq, error) {
 func connDB() (*mongo.Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	uri := "mongodb://quote:quote1@" + mongoquotesvc + "/?quotesreplicaSet=rs0"
+	uri := "mongodb://" + mongoquotesvc + "/?quotesreplicaSet=rs0"
 	client, _ := mongo.Connect(ctx, options.Client().ApplyURI(uri))
 	errping := client.Ping(ctx, nil)
 	return client, errping
